@@ -1,5 +1,3 @@
-from scipy.io.wavfile import write
-from scipy.io import wavfile
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -70,6 +68,7 @@ def find_all():
 	return res 
 
 raw_notes = find_all()
+
 # Test Section
 Do = Note("c'")
 Re = Note("d'")
@@ -105,9 +104,17 @@ def cal_duration(raw_notes):
 		count = 1
 		start_notes = raw_notes[index]
 		if len(start_notes) == 0:
-			count = 0
+			next_notes = raw_notes[index+1]
+			while len(next_notes) == 0:
+				index += 1
+				count += 1
+				next_notes = raw_notes[index+1]
 			index += 1
-			note = None
+			note = 'r'
+			duration = unit_time * count
+			note_type = find_type(duration)
+			string = string + note + note_type + ' '
+
 		elif len(start_notes) == 1:
 			if index == len(raw_notes) - 1:
 				note = start_notes
@@ -180,10 +187,7 @@ def add_lilypond(main):
 		string += "\\set TabStaff.restrainOpenStrings = ##t\n"
 	string += main + "}"
 	return string
-# Add CAPO
 
-     # \set TabStaff.minimumFret = #5
-     # \set TabStaff.restrainOpenStrings = ##t
 print(add_lilypond(output))
 
 # To run on command:
@@ -191,5 +195,9 @@ print(add_lilypond(output))
 # $ python src/create_ly.py > 'lyfiles/demo.ly'
 # $ lilypond lyfiles/demo.ly
 # $ open demo.pdf
+
+# TODO: Add piano sheet
+# TODO: Add rest
+
 
 

@@ -3,4 +3,4 @@
 \new TabStaff \relative{
 \set TabStaff.minimumFret = #3
 \set TabStaff.restrainOpenStrings = ##t
-c'4 <g' a' >4 f'8 \bar "|."}
+r4 c'4 <g' a' >4 f'8 \bar "|."}
