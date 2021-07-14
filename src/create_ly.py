@@ -10,6 +10,7 @@ unit_time = 0.046 # Read from csv for now, TODO [s]
 bpm = 120 # TODO: How to find the BPM?
 time = (4,4) # 4 beats a measure, fourth note as one beat
 key_signature = ('c', 'major') # Key signature of the song
+CAPO = 3 # Set minimum fret
 
 class Note():
 	def __init__(self, name):
@@ -70,12 +71,12 @@ def find_all():
 
 raw_notes = find_all()
 # Test Section
-Do = Note('c')
-Re = Note('d')
-Me = Note('e')
-Fa = Note('f')
-So = Note('g')
-La = Note('a')
+Do = Note("c'")
+Re = Note("d'")
+Me = Note("e'")
+Fa = Note("f'")
+So = Note("g'")
+La = Note("a'")
 unit_time = 0.5 
 bpm = 60 
 test_raw_notes = [[],[],[Do], [Do],[So, La], [So,La], [Fa]]
@@ -173,7 +174,11 @@ output = cal_duration(test_raw_notes)
 def add_lilypond(main):
 	string = '\\version "2.20.0"\n'
 	string += '\\header{title = "Demo"}\n'
-	string += "\\new TabStaff \\relative" + "{" + main + "}"
+	string += "\\new TabStaff \\relative" + "{\n"
+	if CAPO:
+		string += "\\set TabStaff.minimumFret = #" + str(CAPO) + "\n" 
+		string += "\\set TabStaff.restrainOpenStrings = ##t\n"
+	string += main + "}"
 	return string
 # Add CAPO
 
