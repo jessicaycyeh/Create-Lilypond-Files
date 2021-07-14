@@ -11,6 +11,22 @@ bpm = 120 # TODO: How to find the BPM?
 time = (4,4) # 4 beats a measure, fourth note as one beat
 key_signature = ('c', 'major') # Key signature of the song
 
+class Note():
+	def __init__(self, name):
+		self.name = name
+		self.counted = False
+	def counted(self):
+		self.counted = True
+	def get_name(self):
+		return self.name
+
+def belong(note, l): # Decide if a Note object is in a list of Note objects, return the index of the matching Note
+	note_name = note.get_name()
+	for i in range(len(l)):
+		name = l[i].get_name()
+		if name == note_name:
+			return i
+	return "No"
 
 def find_notes(line, threshold=3):
 	notes = []
@@ -18,7 +34,9 @@ def find_notes(line, threshold=3):
 	time = float(data[0])
 	for i in range(1, len(data)):
 		if float(data[i]) > threshold:
-			notes.append(notes_dict[i-1])
+			note_name = notes_dict[i-1]
+			notes.append(Note(note_name))
+			# notes.append(notes_dict[i-1])
 	return notes
 
 def convert_dict(header):
@@ -51,9 +69,18 @@ def find_all():
 	return res 
 
 raw_notes = find_all()
-# print(raw_notes)
+# Test Section
+Do = Note('c')
+Re = Note('d')
+Me = Note('e')
+Fa = Note('f')
+So = Note('g')
+La = Note('a')
+unit_time = 0.5 
+bpm = 60 
+test_raw_notes = [[],[],[Do], [Do],[So, La], [So,La], [Fa]]
 
-def find_type(d):
+def find_type(d): #input:duration [s], output: '16' or '8' ...etc
 	type_dict = {0.25:'16', 0.333:'16.', 0.5:'8', 1:'4', 2:'2', 3:'2.', 4:'1'}
 	template_d = np.array([0.25, 0.333, 0.5, 1, 2, 3, 4])
 	one_beat_duration = 60 / bpm
@@ -63,38 +90,84 @@ def find_type(d):
 	# print("identified_d", identified_d)
 	return type_dict[identified_d]
 
+def same_type(note_types):
+	t = note_types[0]
+	for i in range(1, len(note_types)):
+		if not t == note_types[i]:
+			return False
+	return True 
+
 def cal_duration(raw_notes):
 	string = ""
 	index = 0
 	while index < len(raw_notes):
 		count = 1
-		start_note = raw_notes[index]
-		next_note = raw_notes[index+1]
-		if not start_note:
-			# string += ""
+		start_notes = raw_notes[index]
+		if len(start_notes) == 0:
 			count = 0
 			index += 1
 			note = None
-		else:
-			while start_note == next_note:
+		elif len(start_notes) == 1:
+			if index == len(raw_notes) - 1:
+				note = start_notes
+				index += 1 # End the while loop 
+			else:
+				next_notes = raw_notes[index+1]
+				while start_notes == next_notes:
+					index += 1
+					count += 1
+					start_notes = raw_notes[index]
+					next_notes = raw_notes[index+1]
 				index += 1
-				count += 1
-				start_note = raw_notes[index]
-				next_note = raw_notes[index+1]
-			index += 1
-			note = start_note
+				note = start_notes
 
 		# print(note, count, index)
-		if index == len(raw_notes) - 1:
-			break
-		if note:
-			duration = unit_time * count 
-			note_type = find_type(duration)
-			string = string + note[0] + note_type + ' '
+
+			if note:
+				duration = unit_time * count 
+				note_type = find_type(duration)
+				string = string + note[0].get_name() + note_type + ' '
+		else:
+			notes = []
+			note_types = []
+			initial_index = index 
+			for start_note in start_notes:
+				index = initial_index
+				if start_note.counted: # If this note is already counted before
+					continue
+				start_note.counted = True
+				next_notes = raw_notes[index+1]
+				next_index = belong(start_note, next_notes)
+				while type(next_index) != str : # If start_note inside next_notes
+					index += 1
+					count += 1
+					next_notes[next_index].counted = True
+					# start_note = raw_notes[index]
+					next_notes = raw_notes[index+1]
+					next_index = belong(start_note, next_notes)
+				index += 1
+				note = start_note
+				duration = unit_time * count 
+				note_type = find_type(duration)
+				notes.append(note)
+				note_types.append(note_type)
+
+			if same_type(note_types):
+				notes_str = ""
+				for note in notes:
+					notes_str = notes_str + note.get_name() + " "
+				string = string + "<" + notes_str + ">" + note_types[0] + ' '
+			else:
+				raise ValueError("Notes with different durations not implemented")
+
+		# print("Current string:", string)
+		# print("Current index:", index)
+
 	string += '\\bar "|."'
 	return string
 
-output = cal_duration(raw_notes)
+# output = cal_duration(raw_notes)
+output = cal_duration(test_raw_notes)
 # print(output)
 
 def add_lilypond(main):
@@ -102,7 +175,10 @@ def add_lilypond(main):
 	string += '\\header{title = "Demo"}\n'
 	string += "\\new TabStaff \\relative" + "{" + main + "}"
 	return string
+# Add CAPO
 
+     # \set TabStaff.minimumFret = #5
+     # \set TabStaff.restrainOpenStrings = ##t
 print(add_lilypond(output))
 
 # To run on command:
