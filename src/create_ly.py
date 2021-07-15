@@ -8,8 +8,12 @@ unit_time = 0.046 # Read from csv for now, TODO [s]
 bpm = 120 # TODO: How to find the BPM?
 time = (4,4) # 4 beats a measure, fourth note as one beat
 key_signature = ('c', 'major') # Key signature of the song
+title = "test"
 CAPO = 3 # Set minimum fret
+instruments = "piano" # Specify the instruments "guitar", "piano", or "both"
+omit_stringNum = True
 
+### General functions to use ###
 class Note():
 	def __init__(self, name):
 		self.name = name
@@ -52,13 +56,7 @@ def convert_dict(header):
 		res.append(d[note])
 	return res
 
-
-file = open(csv_file)
-header = file.readline()
-notes_dict = convert_dict(header)
-# print(notes_dict)
-
-def find_all():
+def find_raw_collection():
 	res = []
 	line = file.readline()
 	while line:
@@ -66,8 +64,6 @@ def find_all():
 		res.append(add) 
 		line = file.readline()
 	return res 
-
-raw_notes = find_all()
 
 # Test Section
 Do = Note("c'")
@@ -79,6 +75,7 @@ La = Note("a'")
 unit_time = 0.5 
 bpm = 60 
 test_raw_notes = [[],[],[Do], [Do],[So, La], [So,La], [Fa]]
+# End of test section
 
 def find_type(d): #input:duration [s], output: '16' or '8' ...etc
 	type_dict = {0.25:'16', 0.333:'16.', 0.5:'8', 1:'4', 2:'2', 3:'2.', 4:'1'}
@@ -174,20 +171,55 @@ def cal_duration(raw_notes):
 	string += '\\bar "|."'
 	return string
 
-# output = cal_duration(raw_notes)
-output = cal_duration(test_raw_notes)
-# print(output)
-
+### Add functions ###
+def add_CAPO(string, CAPO):
+	copy_str = "\\set TabStaff.minimumFret = #" + str(CAPO) + "\n" + "\\set TabStaff.restrainOpenStrings = ##t\n" + string
+	return copy_str
+def add_omit_stringNum(string):
+	copy_str = '\\layout { \\omit Voice.StringNumber }\n' + string
+	return copy_str
+def add_header(string, title):
+	header = '\\version "2.20.0"\n' + '\\header{title = "'+ str(title) + '"}\n'
+	return header + string
+def add_guitar(string):
+	copy_str = "\\new TabStaff \\relative" + "{\n" + string + '}'
+	return copy_str
+def add_piano(string):
+	copy_str = "\\new Staff \\relative {\n" + string + '}'
+	return copy_str
+def multiple_ins(string):
+	copy_str = "\\new StaffGroup <<" + string + ">>"
+	return copy_str
+### Create lilypond codes ###
 def add_lilypond(main):
-	string = '\\version "2.20.0"\n'
-	string += '\\header{title = "Demo"}\n'
-	string += "\\new TabStaff \\relative" + "{\n"
-	if CAPO:
-		string += "\\set TabStaff.minimumFret = #" + str(CAPO) + "\n" 
-		string += "\\set TabStaff.restrainOpenStrings = ##t\n"
-	string += main + "}"
+	main = str(main)
+	string = main 
+	if instruments == "guitar":
+		if CAPO:
+			string = add_CAPO(string, CAPO)
+		string = add_guitar(string)
+	elif instruments == "piano":
+		string = add_piano(string)
+		# raise ValueError ("Piano not yet implemented")
+	elif instruments == "both":
+		if CAPO:
+			string = add_CAPO(string, CAPO)
+		guitar_str = add_guitar(string)
+		piano_str = add_piano(main)
+		string = piano_str + '\n' + guitar_str + '\n'
+		string = multiple_ins(string)
+		if omit_stringNum:
+			string = add_omit_stringNum(string)
+	else:
+		raise ValueError("Unknown instruments:", instruments)
+	string = add_header(string, title)
 	return string
 
+file = open(csv_file)
+first_line = file.readline()
+notes_dict = convert_dict(first_line)
+raw_notes = find_raw_collection()
+output = cal_duration(test_raw_notes)
 print(add_lilypond(output))
 
 # To run on command:
@@ -197,7 +229,9 @@ print(add_lilypond(output))
 # $ open demo.pdf
 
 # TODO: Add piano sheet
-# TODO: Add rest
+# TODO: test simple song from YT
+# TODO: Add 打版
+# TODO: Add chords
 
 
 

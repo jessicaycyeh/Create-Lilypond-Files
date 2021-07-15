@@ -9,7 +9,7 @@
 
 % Piano+Guitar 
   
-\layout { \omit Voice.StringNumber }
+%\layout { \omit Voice.StringNumber }
 \new StaffGroup <<
    \new Staff \relative {
      \clef "treble_8"
