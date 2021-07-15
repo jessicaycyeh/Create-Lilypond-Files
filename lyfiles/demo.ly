@@ -1,4 +1,6 @@
 \version "2.20.0"
-\header{title = "test"}
-\new Staff \relative {
-r4 c'4 <g' a' >4 f'8 \bar "|."}
+\header{title = "sun"}
+\new TabStaff{
+\set TabStaff.minimumFret = #3
+\set TabStaff.restrainOpenStrings = ##t
+dis2. dis'8 f'4 dis'4  dis'4 f'4 c1  dis'4 f'4 dis'2  gis,2  dis'4 f'4 dis'2.  f'4 f4  dis'4 f'4  dis2.  dis'8 dis'8 d'4 d2. f4  dis'2 g2 f8 c2  f4 g2  gis8 < gis, g > 16 g4 < gis, ais > 2 ais16.  dis'2 gis,8 g,2.  < f c' > 4 c'4  c'4 ais,2. f4  f'4 f4 f'4 dis2  g16 dis'4 d'4 d2. f16. dis'8  g2 f8 c8 f4  c2 g2 g16 ais,2  ais,16. gis16. < g f, > 4 f,16 ais8 gis,2 g,16  dis'8 g,2 gis,16.  f2 g'8 dis'4  c'2 e'8 f'2 ais,2.  gis,4 dis'8  dis'2 gis,16. gis4 c'4 ais'16 < ais' gis, > 8 gis,2 c'4  c'4 dis'16. g,2 dis'16. dis'2.  < g, g > 16 g4 ais'16. ais'8 c2. g8  dis'16. f4 dis'16 c'4  dis'16. f4 c'1 f'4  f'4 f2 dis'16. dis'16 dis'16  c'8 c'8 < c' dis' > 4 dis'2  f16 < ais, f' > 1 f'16 f8  f8 f8 f'16. f4  f'4 < gis, fis > 4 fis8 dis'8 dis2 f'16. < f' ais > 4 ais4  dis'4 ais'16. dis2 f'8 ais16.  < f' f'' > 4 f''16 fis8 dis'8 c2 f'4 f'4 ais16 ais16  dis'2 ais'16. c2 f'8 dis'4 c'4  dis'4 < c' gis, > 1 gis,4 dis'4 gis,8 dis'4  dis'2 gis,2 c'4 gis4 < dis' c' > 4 c'4  ais16 f4 dis'8 dis'8 gis,8  fis16 f'4 ais,2 f8 f'8 f2 fis8 f'4  fis16. dis'16. < dis f' > 4 f'8 f'16 f'4  dis'4 ais'16. dis2 f'4 f16 f'4  dis'4 c2 f'4 f'8 < g fis > 4 fis16  dis'2 c2 f'16. dis'4 c'2  dis'4 gis,4 < dis' c' > 4 c'2 gis4 dis'2.  gis,2 c'4 < fis gis > 16 gis4 dis'4  < f gis > 4 gis4 dis'16 dis'2 gis16  f'8 ais,2. f4 dis'4  dis4 g16. g16    }
