@@ -1,28 +1,24 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+from Note import Note  
 
 # Config
-csv_file = 'csv/demo-sound.csv'
-unit_time = 0.046 # Read from csv for now, TODO [s]
-bpm = 120 # TODO: How to find the BPM?
+csv_file = 'csv/test-sound.csv'
+unit_time = 0.046439909 # Based on the selected window time
+bpm = 124 # Find BPM at https://songbpm.com/
 time = (4,4) # 4 beats a measure, fourth note as one beat
-key_signature = ('c', 'major') # Key signature of the song
-title = "test"
+key_signature = ('ees', 'major') # Key signature of the song, can also be found at https://songbpm.com/
+title = "Test"
 CAPO = 3 # Set minimum fret
-instruments = "piano" # Specify the instruments "guitar", "piano", or "both"
+instruments = "both" # Specify the instruments "guitar", "piano", or "both"
 omit_stringNum = True
+max_line = 100 # Only create a subset of the score
+absolute_threshold = 2.5 # To filter out the rests
+relative_strength = 0.75 # Decide how loud can be counted as a new note
+start_octave = 0 # The lowest octave. Default: 0 (C3-B3)
 
 ### General functions to use ###
-class Note():
-	def __init__(self, name):
-		self.name = name
-		self.counted = False
-	def counted(self):
-		self.counted = True
-	def get_name(self):
-		return self.name
-
 def belong(note, l): # Decide if a Note object is in a list of Note objects, return the index of the matching Note
 	note_name = note.get_name()
 	for i in range(len(l)):
@@ -31,39 +27,62 @@ def belong(note, l): # Decide if a Note object is in a list of Note objects, ret
 			return i
 	return "No"
 
-def find_notes(line, threshold=3):
+def find_notes(line):
 	notes = []
 	data = line.split(',')
 	time = float(data[0])
+	max_amp = float(max(data[1:]))
+	threshold = relative_strength * max_amp
 	for i in range(1, len(data)):
-		if float(data[i]) > threshold:
+		if (float(data[i]) > threshold) and (float(data[i]) >= absolute_threshold):
 			note_name = notes_dict[i-1]
 			notes.append(Note(note_name))
 			# notes.append(notes_dict[i-1])
 	return notes
 
-def convert_dict(header):
+def convert_dict(first_line, start_octave):
 	d = {'C':'c', 'C#':'cis', 'D':'d', "D#":'dis', 'E':'e', 'E#':'eis', 'F':'f', "F#":'fis',\
 	'G':'g', 'G#':'gis', 'A':'a', "A#":'ais', 'B':'b', 'B#':'bis', 'Cb':'ces', 'Db':'des',\
 	'Eb':'ees', 'Gb':'ges','Ab':'aes','Bb': 'bes'}
-	res = []
-	elements = header.split(',')
+	# d = {'C':"c'", 'C#':"cis'", 'D':"d'", "D#":"dis'", 'E':"e'", 'E#':"eis'", 'F':"f'", "F#":"fis'",\
+	# 'G':"g'", 'G#':"gis'", 'A':"a'", "A#":"ais'", 'B':"b'", 'B#':"bis'", 'Cb':"ces'", 'Db':"des'",\
+	# 'Eb':"ees'", 'Gb':"ges'",'Ab':"aes'",'Bb': "bes'"}
+	octave = start_octave
+	notes_dict = []
+	elements = first_line.split(',') # Usually: ['TIME', 'A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab\n']
 	for i in range(1, len(elements)):
-		if i == len(elements) -1 :
-			note = elements[i][:-2]
+		if elements[i] == 'C': # Decide when the notes cross an octave
+			octave += 1
+		if i == len(elements) -1 : #The last one is in the form 'Ab\n'
+			note = elements[i][:-1]
 		else:
 			note = elements[i]
-		res.append(d[note])
-	return res
+		add = d[note] # The next element in notes_dict
+		if octave != 0: # Post-processing the note format
+			if octave > 0: # Add "'" to denote higher octaves
+				for i in range(octave):
+					add += "'"
+			else:			# Add "," to denote lower octaves
+				for i in range(abs(octave)):
+					add += ","
+		notes_dict.append(add)
+	return notes_dict
 
 def find_raw_collection():
-	res = []
-	line = file.readline()
-	while line:
-		add = find_notes(line)
-		res.append(add) 
+	raw_notes = []
+	if max_line:
+		count = 0 
+		for i in range(max_line):
+			line = file.readline()
+			add = find_notes(line)
+			raw_notes.append(add)
+	else:
 		line = file.readline()
-	return res 
+		while line:
+			add = find_notes(line)
+			raw_notes.append(add) 
+			line = file.readline()
+	return raw_notes
 
 # Test Section
 Do = Note("c'")
@@ -72,8 +91,8 @@ Me = Note("e'")
 Fa = Note("f'")
 So = Note("g'")
 La = Note("a'")
-unit_time = 0.5 
-bpm = 60 
+# unit_time = 0.5 
+# bpm = 60 
 test_raw_notes = [[],[],[Do], [Do],[So, La], [So,La], [Fa]]
 # End of test section
 
@@ -93,7 +112,14 @@ def same_type(note_types):
 		if not t == note_types[i]:
 			return False
 	return True 
-
+def print_raw_notes(raw_notes):
+	res = []
+	for notes in raw_notes:
+		add = []
+		for note in notes:
+			add.append(note.get_name())
+		res.append(add)
+	return res 
 def cal_duration(raw_notes):
 	string = ""
 	index = 0
@@ -190,6 +216,15 @@ def add_piano(string):
 def multiple_ins(string):
 	copy_str = "\\new StaffGroup <<" + string + ">>"
 	return copy_str
+def add_key(string):
+	return "\\key "+ str(key_signature[0]) + ' \\' + str(key_signature[1]) + ' '+ string 
+def add_treb(string):
+	return '\\clef "treble"' + ' '+ string
+def add_time(string):
+	return "\\time " + str(time[0]) + "/" + str(time[1]) + ' ' + string 
+def add_tempo(string):
+	return '\\tempo "Andante" ' + str(time[1])+  ' = ' + str(bpm) +'\n' + string 
+
 ### Create lilypond codes ###
 def add_lilypond(main):
 	main = str(main)
@@ -199,13 +234,21 @@ def add_lilypond(main):
 			string = add_CAPO(string, CAPO)
 		string = add_guitar(string)
 	elif instruments == "piano":
+		string = add_tempo(string)
+		string = add_time(string)
+		string = add_key(string)
+		string = add_treb(string)
 		string = add_piano(string)
-		# raise ValueError ("Piano not yet implemented")
 	elif instruments == "both":
 		if CAPO:
 			string = add_CAPO(string, CAPO)
 		guitar_str = add_guitar(string)
-		piano_str = add_piano(main)
+
+		piano_str = add_tempo(main)
+		piano_str = add_time(piano_str)
+		piano_str = add_key(piano_str)
+		piano_str = add_treb(piano_str)
+		piano_str = add_piano(piano_str)
 		string = piano_str + '\n' + guitar_str + '\n'
 		string = multiple_ins(string)
 		if omit_stringNum:
@@ -215,12 +258,25 @@ def add_lilypond(main):
 	string = add_header(string, title)
 	return string
 
+
+min_block = int(60/ (bpm * 4 * unit_time)) # A note should last for at least two blocks in raw
 file = open(csv_file)
 first_line = file.readline()
-notes_dict = convert_dict(first_line)
+notes_dict = convert_dict(first_line, start_octave)
 raw_notes = find_raw_collection()
-output = cal_duration(test_raw_notes)
-print(add_lilypond(output))
+print(print_raw_notes(raw_notes))
+# output = cal_duration(raw_notes)
+# print(add_lilypond(output))
+
+# To get the csv file:
+# In Sonic Visulizer:
+# Transform -> Analysis by Category -> Visulization -> Chromogram 
+# File -> Export annotation layer -> 
+# Save in $HOME/create-lilypond-files/csv/"your_csv.csv"
+# Check: Include a header row before the data rows & 
+# 	   Include a timestamp column before the data columns &
+# 	   Export the full height of the layer
+
 
 # To run on command:
 # Go to lilypond directory
@@ -228,10 +284,12 @@ print(add_lilypond(output))
 # $ lilypond lyfiles/demo.ly
 # $ open demo.pdf
 
-# TODO: Add piano sheet
+# TODO: Allow transpose
 # TODO: test simple song from YT
 # TODO: Add 打版
 # TODO: Add chords
+# TODO: change unit_time based on window
+# TODO: allow 8th note as a beat (change type_dict)
 
 
 
